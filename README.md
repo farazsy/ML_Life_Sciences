@@ -4,7 +4,7 @@
 
 ## Team Members
 - Syed Faraz Ahmed
-- Mohamed
+- Mohamed ibrahim mohamed Abdelhamid
 
 ## Project Overview
 
