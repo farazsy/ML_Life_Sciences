@@ -1,29 +1,11 @@
-from preprocessing.preprocessing import PrePipeline
+"""Run the Adamson preprocessing with default settings (see scripts/preprocess_adamson.py)."""
 
-# Initialize pipeline
-pipeline = PrePipeline("AdamsonWeissman2016_GSM2406681_10X010.h5ad")
+import sys
+from pathlib import Path
 
-# Run preprocessing
-adata = pipeline.run_pipeline(
-    min_cells=5, min_counts=200, normalization="target", target_sum=1e6
-)
+sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
 
-# Display results
-print("\nPreprocessing completed successfully!")
+from preprocess_adamson import main  # noqa: E402
 
-print(f"Number of cells: {adata.n_obs}")
-print(f"Number of genes: {adata.n_vars}")
-
-print("\nPerturbation groups:")
-print(adata.obs["perturbation"].value_counts())
-
-print("\nFirst five cells:")
-print(adata.obs.head())
-
-print("\nExpression matrix shape:")
-print(adata.X.shape)
-
-# Save processed dataset
-adata.write_h5ad("processed_dataset.h5ad")
-
-print("\nProcessed dataset saved successfully!")
+if __name__ == "__main__":
+    main()
