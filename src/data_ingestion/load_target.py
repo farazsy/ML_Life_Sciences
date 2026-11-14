@@ -4,7 +4,7 @@ To be written
 
 from pathlib import Path
 
-from utils import read_target
+from src.data_ingestion.utils import read_target
 
 
 class LoadTarget:

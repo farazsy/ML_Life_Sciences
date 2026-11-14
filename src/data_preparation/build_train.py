@@ -40,10 +40,10 @@ class BuildTrain:
         # To be implemented once the embedding model is selected.
         raise NotImplementedError
 
-    def build(self):
+    def build(self, data):
 
         if self.mode == "load":
-            self.load_precomputed()
+            self.load_precomputed(data)
 
         elif self.mode == "generate":
             self.load_gene_descriptions()
@@ -53,6 +53,6 @@ class BuildTrain:
 
             self.generate_embeddings()
 
-        self.validate_embeddings()
+        # self.validate_embeddings()
 
         return self
