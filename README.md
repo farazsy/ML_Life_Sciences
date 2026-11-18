@@ -3,10 +3,10 @@
 **Team A3**
 
 - Syed Faraz Ahmed
-- Mohamed ibrahim mohamed Abdelhamid
-- Nilu
-- Vu
-- Gwen
+- Vu Ho Tran Anh
+- Gwendolyn Elizabeth Howes
+- Mohamed Ibrahim Mohamed
+- Nilüfer Cagla Yigit
 
 ## Project Overview
 
