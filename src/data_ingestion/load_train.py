@@ -4,7 +4,7 @@ To be written
 
 from pathlib import Path
 
-from utils import read_embeddings, read_text
+from src.data_ingestion.utils import read_embeddings, read_text
 
 
 class LoadTrain:
@@ -30,4 +30,5 @@ class LoadTrain:
         else:
             raise ValueError(f"Invalid read mode: {self.mode}.")
 
+        print("Train Data Loaded")
         return self
