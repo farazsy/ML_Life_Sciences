@@ -9,6 +9,7 @@ class PCARegression(BaseModel):
         self.n_components = n_components
         self.alpha = alpha
         self.parameters = {"n_components": n_components, "alpha": alpha}
+
         self.pca = PCA(n_components=n_components)
         self.ridge = Ridge(alpha=alpha)
 
