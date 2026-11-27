@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from src.training.models.base_model import BaseModel
+from src.training.trainers.base_model import BaseModel
 from torch.utils.data import DataLoader, TensorDataset
 
 
