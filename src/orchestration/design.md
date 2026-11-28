@@ -1,13 +1,13 @@
 
 ## 5. Orchestration
 
-**Status:** Implemented – Initial Version
+**Status:** Implemented – Initial Version with Validation Integration
 
 ### 5.1 Description
 
 The Orchestration module is responsible for coordinating the different components of the GenePert pipeline and managing the execution of the complete workflow.
 
-It connects the Data Ingestion, Data Preparation, Training, and Evaluation modules into a single execution process.
+It connects the Data Ingestion, Data Preparation, Training, Validation and Evaluation modules into a single execution process.
 
 The current implementation provides a central entry point that takes the input data paths, executes each pipeline stage sequentially, and produces an evaluation report.
 
@@ -19,8 +19,8 @@ The pipeline execution is managed by the `Orch` class through its `run()` method
 
 1. **Initialization**
    - Receives the paths to the training and target datasets.
-   - Initializes the Data Ingestion, Data Preparation, and Trainer components.
-   - Initializes the Evaluation component later during execution.
+   - Receives the model and validation configuration.
+   - Initializes the Data Ingestion, Data Preparation, Trainer and Validator components.
 
 2. **Data Ingestion**
    - Loads the training data and target data.
@@ -34,27 +34,16 @@ The pipeline execution is managed by the `Orch` class through its `run()` method
    - Extracts the embedding vectors into the feature matrix `X`.
    - Extracts the gene expression profiles into the target matrix `y`.
    - Converts both matrices into NumPy arrays.
+   - Extracts the control expression profile and perturbation identifiers.
 
-5. **Train-Test Split**
-   - Splits the processed data into training and testing datasets.
-   - Uses the Trainer component to perform the split.
+5. **Validation**
+   - Passes the processed matrices, control expression profile, and perturbation identifiers to the Validator.
+   - Executes the selected validation strategy.
+   - Delegates data splitting, model training, prediction, and evaluation to the Validation module.
 
-6. **Model Training**
-   - Initializes the selected model.
-   - Trains the model using the training datasets.
-
-7. **Prediction**
-   - Generates predictions for the training dataset.
-   - Generates predictions for the testing dataset.
-
-8. **Evaluation**
-   - Extracts the control expression profile from the prepared data.
-   - Initializes the Evaluation component.
-   - Evaluates both training and testing predictions.
-
-9. **Reporting**
+6. **Reporting**
    - Stores the evaluation results.
-   - Prints the final evaluation report.
+   - Prints and returns the final evaluation report.
 
 **Workflow overview:**
 
@@ -64,12 +53,13 @@ flowchart TD
     B --> C["Raw Training and Target Data"]
     C --> D["Data Preparation"]
     D --> E["Combined Dataset"]
-    E --> F["Extract X and y"]
-    F --> G["Train-Test Split"]
-    G --> H["Model Training"]
-    H --> I["Generate Predictions"]
-    I --> J["Evaluation"]
-    J --> K["Evaluation Report"]
+    E --> F["Extract X and y, ctrl and IDs"]
+    F --> G["Validator"]
+    G --> H["Validation Strategy"]
+    H --> I["Holdout Validation"]
+    H --> J["Cross-Validation"]
+    I --> K["Evaluation Report"]
+    J --> K
 ```
 
 ### 5.3 Inputs
@@ -93,13 +83,40 @@ The Orchestration module receives the following inputs:
 
 **Model Parameters (`params`)**
 
-- Intended to contain model-specific configuration parameters.
-- Defaults to an empty dictionary.
-- Currently not passed to the Trainer during initialization.
+- Contains model-specific configuration parameters.
+- Defaults to `None`.
+- Passed to the Trainer during initialization.
+
+**Validation Method (`validation_method`)**
+
+- Defines the validation strategy.
+- Supports `"holdout"` and `"cross_validation"`.
+- Defaults to `"holdout"`.
+
+**Number of Splits (`n_splits`)**
+
+- Number of folds used during cross-validation.
+- Defaults to `5`.
+
+**Shuffle (`shuffle`)**
+
+- Determines whether the data is shuffled before generating cross-validation folds.
+- Defaults to `True`.
+
+**Random State (`random_state`)**
+
+- Controls reproducibility of internally generated data partitions.
+- Defaults to `42`.
+
+**Shared Folds (`folds`)**
+
+- Optional argument passed to the `run()` method.
+- Allows multiple cross-validation experiments to use identical training and testing partitions.
+- Defaults to `None`.
 
 ### 5.4 Outputs
 
-The Orchestration module stores the intermediate datasets, predictions, and final evaluation report as attributes of the `Orch` class.
+The Orchestration module stores the intermediate datasets, and final evaluation report as attributes of the `Orch` class.
 
 **Raw Data**
 
@@ -111,25 +128,16 @@ The Orchestration module stores the intermediate datasets, predictions, and fina
 - `X_processed`: Processed embedding matrix.
 - `y_processed`: Processed gene expression matrix.
 
-**Training and Testing Data**
-
-- `X_train`: Training feature matrix.
-- `X_test`: Testing feature matrix.
-- `y_train`: Training target matrix.
-- `y_test`: Testing target matrix.
-
-**Predictions**
-
-- `y_pred_train`: Predictions generated for the training dataset.
-- `y_pred_test`: Predictions generated for the testing dataset.
-
 **Evaluation Report**
 
-- `report`: Dictionary containing the evaluation metrics for both training and testing datasets.
+- `report`: Dictionary containing the evaluation results returned by the Validation module.
+- Holdout validation returns training and testing metrics.
+- Cross-validation returns individual fold results and aggregated metrics.
+- The report is also returned by the `run()` method.
 
 ### 5.5 Current Implementation
 
-The current implementation connects all four main pipeline components and executes them sequentially through a single `run()` method.
+The current implementation connects the main pipeline components and executes them sequentially through a single `run()` method.
 
 **Data Ingestion**
 
@@ -154,25 +162,19 @@ The combined dataset is converted into two NumPy arrays:
 - **X:** Created by stacking the embedding vectors using `np.stack()`.
 - **y:** Created by removing the perturbation identifier and embedding columns, then converting the remaining gene expression values into a NumPy array.
 
-**Train-Test Split**
+The control expression profile and perturbation identifiers are also extracted from the prepared data.
 
-The processed matrices are passed to the Trainer component, which splits the data into training and testing sets.
+**Validation**
 
-**Model Training and Prediction**
+The processed matrices, control expression profile, and perturbation identifiers are passed to the Validator component.
 
-The Trainer initializes the selected model and fits it using the training data.
+The Validator selects the appropriate validation strategy and manages data splitting, model training, prediction, and evaluation through the existing Trainer and Evaluation components.
 
-Predictions are then generated for both training and testing datasets.
-
-**Evaluation**
-
-The control expression profile is extracted from the prepared control data and converted into a NumPy array.
-
-It is passed to the Evaluation component, which calculates the configured metrics for both training and testing predictions.
+Externally generated folds can optionally be provided for cross-validation.
 
 **Reporting**
 
-The final evaluation results are stored in the `report` attribute and printed after execution.
+The final evaluation results are stored in the `report` attribute, printed and returned after execution.
 
 ### 5.6 Future Enhancements
 
@@ -180,14 +182,13 @@ The Orchestration module is expected to evolve into a more flexible pipeline exe
 
 **Configuration and Flexibility**
 
-- **Model configuration:** Pass model-specific parameters from the orchestration layer to the Trainer.
 - **Pipeline configuration:** Allow data preparation settings, training options, and evaluation metrics to be configured externally.
 - **Training modes:** Support different training data modes, including loading precomputed embeddings and generating embeddings from gene descriptions.
 - **Model selection:** Support different model architectures and model families.
 
 **Execution and Reproducibility**
 
-- **Reproducibility:** Introduce configurable random states for dataset splitting and model training.
+- **Reproducibility:** Extend random state configuration to stochastic model training.
 - **Error handling:** Introduce centralized error handling to manage failures across pipeline stages.
 - **Logging:** Track pipeline execution, intermediate steps, and errors.
 - **Validation:** Validate inputs and outputs between pipeline components before proceeding to the next stage.
@@ -198,6 +199,7 @@ The Orchestration module is expected to evolve into a more flexible pipeline exe
 - **Experiment tracking:** Track model configurations, metrics, and experiment results.
 - **Result persistence:** Save predictions, evaluation reports, and trained models.
 - **Model comparison:** Integrate model comparison into the execution workflow.
+- **Shared validation partitions:** Integrate the existing shared-fold functionality into the multiple-experiment workflow.
 
 **Reporting and Visualization**
 
@@ -238,35 +240,42 @@ The Orchestration module manages data passed between the different pipeline comp
 - Expected shape: `(n_perturbations, n_genes)`.
 - Each row represents the mean gene expression profile of one perturbation.
 
-**Training and Testing Data**
+**Control Expression Profile (`ctrl`)**
 
 - Python type: `numpy.ndarray`.
-- Features and targets are split into four separate arrays.
-- Their first dimension represents the number of samples in each split.
+- Expected shape: `(1, n_genes)`.
+- Contains the mean expression profile of the control cells.
 
-**Predictions (`y_pred_train`, `y_pred_test`)**
+**Perturbation Identifiers (`ids`)**
 
 - Python type: `numpy.ndarray`.
-- Data type: Typically `float`.
-- Expected shape: `(n_samples, n_genes)`.
-- Contains the predicted gene expression profiles.
+- Expected shape: `(n_perturbations,)`.
+- Contains the identifiers corresponding to the rows of the processed matrices.
+
+**Shared Folds (`folds`)**
+
+- Optional iterable of training and testing index pairs.
 
 **Evaluation Report (`report`)**
 
 - Python type: `dict`.
-- Top-level keys: `"train"` and `"test"`.
-- Values: Dictionaries containing the corresponding evaluation metrics.
+- The structure depends on the selected validation strategy.
+- Holdout reports contain training and testing metrics.
+- Cross-validation reports contain validation metadata, individual fold reports, and aggregated metrics.
 
 ### 5.8 Implementation Considerations
 
 The following points should be considered when extending the current implementation:
 
-- The `params` argument is currently not passed to the Trainer. Model-specific parameters are therefore not configurable through the Orchestration constructor yet.
-- The train-test split currently uses the default behavior of `train_test_split`, without a fixed random state.
-- The control expression profile is extracted separately and passed to the Evaluation module. Its gene ordering must remain consistent with the target expression matrices.
+- The control expression profile is extracted separately and passed through the Validation module. Its gene ordering must remain consistent with the target expression matrices.
 - The current implementation assumes that the processed dataset contains valid embedding vectors that can be stacked into a NumPy array.
 - The orchestration currently executes the pipeline sequentially without centralized error handling.
 - Pipeline execution and intermediate results are not currently managed through a logging system.
-- The evaluation report is printed and stored in memory, but is not automatically saved to disk.
-- The `Orch` constructor currently initializes the Trainer with the selected model name but does not expose the full model configuration.
+- The evaluation report is printed, returned and stored in memory, but is not automatically saved to disk.
 - The current implementation provides an initial end-to-end workflow, but does not yet support multiple experiments or model comparisons within one execution.
+- Model-specific parameters are passed to the Trainer through the `params` argument.
+- The random state is configurable for internally generated data partitions.
+- Shared folds require identical perturbation ordering across experiments.
+- Data preparation occurs before validation, which may introduce potential data leakage through dataset-dependent preprocessing.
+- Training and testing datasets and predictions are managed internally by the Validation module.
+- After cross-validation, the Trainer retains the model trained during the final fold.

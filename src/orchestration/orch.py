@@ -6,12 +6,13 @@ import numpy as np
 
 from src.data_ingestion.data_ingestion import DataIngestion
 from src.data_preparation.data_preparation import DataPreparation
-from src.evaluation.evaluate import Evaluate
+from src.validation.validation import Validator
 from src.training.trainer import Trainer
 
 
 class Orch:
-    def __init__(self, train_data_path, target_data_path, model="ridge", params={}):
+    def __init__(self, train_data_path, target_data_path, model="ridge", params=None,
+                 validation_method="holdout", n_splits=5, shuffle=True, random_state=42):
         self.train_data_path = train_data_path
         self.target_data_path = target_data_path
 
@@ -19,21 +20,21 @@ class Orch:
         self.y_raw = None
         self.X_processed = None
         self.y_processed = None
-        self.X_train = None
-        self.X_test = None
-        self.y_train = None
-        self.y_test = None
-        self.y_pred_test = None
-        self.y_pred_train = None
 
         self.ingestion = DataIngestion()
         self.preparation = DataPreparation()
-        self.trainer = Trainer(model)
-        self.evaluate = None
+        self.trainer = Trainer(model, model_params=params, random_state=random_state)
+        self.validator = Validator(
+            trainer=self.trainer,
+            method=validation_method,
+            n_splits=n_splits,
+            shuffle=shuffle,
+            random_state=random_state
+        )
 
         self.report = None
 
-    def run(self):
+    def run(self, folds=None):
         self.ingestion.load(
             train_path=self.train_data_path, target_path=self.target_data_path
         )
@@ -48,21 +49,11 @@ class Orch:
             columns=["pert", "embedding"]
         ).to_numpy(dtype=float)
 
-        self.X_train, self.X_test, self.y_train, self.y_test = self.trainer.split_data(
-            self.X_processed, self.y_processed
-        )
-
         ctrl = self.preparation.ctrl.drop(columns=["pert"]).to_numpy(dtype=float)
+        ids = self.preparation.dataset["pert"].to_numpy()
 
-        self.trainer.train(self.X_train, self.y_train)
-
-        self.y_pred_train = self.trainer.predict(self.X_train)
-        self.y_pred_test = self.trainer.predict(self.X_test)
-
-        self.evaluate = Evaluate(ctrl)
-
-        self.report = self.evaluate.report(
-            self.y_train, self.y_pred_train, self.y_test, self.y_pred_test
-        )
+        self.report = self.validator.run(self.X_processed, self.y_processed, ctrl, ids, folds=folds)
 
         print(self.report)
+
+        return self.report
