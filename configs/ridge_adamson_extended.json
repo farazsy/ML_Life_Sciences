@@ -1,0 +1,44 @@
+{
+  "DataIngestion": {
+    "train_path": "/Users/niluferyigit/Desktop/nilüfer/uni/Softwareprojekt ML for LS/GenePT_emebdding_v2/GenePT_gene_embedding_ada_text.pickle",
+    "target_path": "/Users/niluferyigit/Desktop/nilüfer/uni/Softwareprojekt ML for LS/AdamsonWeissman2016_GSM2406681_10X010.h5ad",
+    "train_mode": "embd"
+  },
+  "DataPreparation": {
+    "train_mode": "load",
+    "target_config": {
+      "control_labels": [
+        "62(mod)_pBA581",
+        "63(mod)_pBA580",
+        "Gal4-4(mod)_pBA582"
+      ],
+      "ctrl_label": "ctrl",
+      "perturbation_column": "perturbation",
+      "gene_column": "pert",
+      "separator": "_",
+      "mad_max": 5,
+      "min_cells": 5,
+      "min_counts": 200,
+      "normalization": "target",
+      "target_sum": 1000000,
+      "copy_data": true
+    }
+  },
+  "Trainer": {
+    "model_name": "ridge",
+    "model_params": {
+      "alpha": 1.0
+    },
+    "test_size": 0.2,
+    "random_state": 42
+  },
+  "Evaluate": {
+    "metrics": [
+      "mse",
+      "rmse",
+      "mae",
+      "pearson",
+      "pearson_delta"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 from sklearn.decomposition import PCA
 from sklearn.linear_model import Ridge
-from src.training.models.base_model import BaseModel
+from src.training.trainers.base_model import BaseModel
 
 
 class PCARegression(BaseModel):

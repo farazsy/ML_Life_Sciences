@@ -1,0 +1,30 @@
+{
+  "DataIngestion": {
+    "train_path": "/Users/niluferyigit/Desktop/nilüfer/uni/Softwareprojekt ML for LS/GenePT_emebdding_v2/GenePT_gene_embedding_ada_text.pickle",
+    "target_path": "/Users/niluferyigit/Desktop/nilüfer/uni/Softwareprojekt ML for LS/AdamsonWeissman2016_GSM2406681_10X010.h5ad",
+    "train_mode": "embd"
+  },
+  "DataPreparation": {
+    "train_mode": "load",
+    "target_config": {
+    }
+  },
+  "Trainer": {
+    "model_name": "pca_ridge",
+    "model_params": {
+      "n_components": 10,
+      "alpha": 1.0
+    },
+    "test_size": 0.2,
+    "random_state": 42
+  },
+  "Evaluate": {
+    "metrics": [
+      "mse",
+      "rmse",
+      "mae",
+      "pearson",
+      "pearson_delta"
+    ]
+  }
+}

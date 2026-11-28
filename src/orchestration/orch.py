@@ -2,6 +2,7 @@
 TBD
 """
 
+import json
 import numpy as np
 
 from src.data_ingestion.data_ingestion import DataIngestion
@@ -11,9 +12,8 @@ from src.training.trainer import Trainer
 
 
 class Orch:
-    def __init__(self, train_data_path, target_data_path, model="ridge", params={}):
-        self.train_data_path = train_data_path
-        self.target_data_path = target_data_path
+    def __init__(self, config):
+        self.config = config
 
         self.X_raw = None
         self.y_raw = None
@@ -27,16 +27,21 @@ class Orch:
         self.y_pred_train = None
 
         self.ingestion = DataIngestion()
-        self.preparation = DataPreparation()
-        self.trainer = Trainer(model)
+        self.preparation = DataPreparation(**config["DataPreparation"])
+        self.trainer = Trainer(**config["Trainer"])
         self.evaluate = None
 
         self.report = None
 
+    @classmethod
+    def from_json(cls, path):
+        with open(path) as f:
+            config = json.load(f)
+
+        return cls(config)
+
     def run(self):
-        self.ingestion.load(
-            train_path=self.train_data_path, target_path=self.target_data_path
-        )
+        self.ingestion.load(**self.config["DataIngestion"])
 
         self.X_raw = self.ingestion.train_data
         self.y_raw = self.ingestion.target_data
@@ -59,7 +64,7 @@ class Orch:
         self.y_pred_train = self.trainer.predict(self.X_train)
         self.y_pred_test = self.trainer.predict(self.X_test)
 
-        self.evaluate = Evaluate(ctrl)
+        self.evaluate = Evaluate(ctrl, **self.config["Evaluate"])
 
         self.report = self.evaluate.report(
             self.y_train, self.y_pred_train, self.y_test, self.y_pred_test
